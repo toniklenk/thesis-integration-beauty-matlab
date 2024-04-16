@@ -6,7 +6,7 @@ for scale = [2 4 8 16 32]
     for i=1:length(dir_images)
         imgname = dir_images(i).name;
         imgpath = [dir_images(i).folder,'/',imgname];
-        imgname = imgname(1:end-4); %need this lalter
+        imgname = imgname(1:end-4); %need this later
     
         im = imread(imgpath);
         im = imresize(im,[640,640]);
@@ -26,18 +26,15 @@ for scale = [2 4 8 16 32]
         end
     
         im = single(im); % note: 255 range
-        im = im / 127.5 - 1;
-        im = imresize(im, [256,256]);
+        im = imresize(im, [224,224]);
         save([dir_save '/scale' num2str(scale) '/full/',imgname], "im")
     
         imv1 = single(imv1); % note: 255 range
-        imv1 = imresize(imv1, [256,256]);
-        imv1 = imv1 / 127.5 - 1;
+        imv1 = imresize(imv1, [224,224]);
         save([dir_save '/scale' num2str(scale) '/version1/',imgname], "imv1")
     
         imv2 = single(imv2); % note: 255 range
-        imv2 = imresize(imv2, [256,256]);
-        imv2 = imv2 / 127.5 - 1;
+        imv2 = imresize(imv2, [224,224]);
         save([dir_save '/scale' num2str(scale) '/version2/',imgname], "imv2")
     end
 end
