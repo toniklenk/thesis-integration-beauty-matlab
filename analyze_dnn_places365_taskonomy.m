@@ -3,126 +3,134 @@ clc
 
 warning off
 
-%study
-for st=1:4
+
+% import correlation, self-similarity and l2norm (computed in PyTorch)
+DATA_PATH = './data taskonomy';
+
+MODEL_NAMES = {'autoencoding' 'depth_euclidean' 'jigsaw' 'reshading' ...
+               'edge_occlusion' 'keypoints2d' 'room_layout' ...  %'colorization' currently not working
+               'curvature' 'edge_texture' 'keypoints3d' 'segment_unsup2d' ...
+               'class_object' 'egomotion' 'nonfixated_pose' 'segment_unsup25d' ...
+               'class_scene' 'fixated_pose' 'normal' 'segment_semantic' ...
+               'denoising' 'inpainting' 'point_matching' 'vanishing_point'};
+
+
+BEHAVIOR_PATH = './behavior';
+BEHAVIOR_NAMES = {'study1_places1_short.mat', 'study2_places1.mat', 'study3_places2.mat', 'study4_oasis.mat'};
+
+DATASET_NAMES = {'places1', 'places1', 'places2', 'oasis'}; % study 1&2 use only different behavioral data
+
+SAVE_PATH = './results taskonomy';
+
+
+
+for model = 1:length(MODEL_NAMES)
+
+    for study=1:4
+        
+        load(fullfile(BEHAVIOR_PATH, BEHAVIOR_NAMES{study}));
+        load(fullfile(DATA_PATH, MODEL_NAMES{model}, ['cnn_' MODEL_NAMES{model} '_res_' DATASET_NAMES{study} '.mat']));
+        
+        % COPMUTE CORRELATIONS
+        for scale=1:5
     
-    if st==1
-        stim_type='places1_short';
-        cnn_type='places1';
-    elseif st==2
-        stim_type='places1';
-        cnn_type='places1';
-    elseif st==3
-        stim_type='places2';
-        cnn_type='places2';
-    else
-        stim_type='oasis';
-        cnn_type='oasis';
-    end
+            % behaviour
+            beh=mean(res.beauty,2); 
     
-    %load behavioral data
-    load(['./behavior/study',num2str(st),'_',stim_type]);
-    load(['./results/cnn_places365_res_',cnn_type]);
+            % images
+            for img=1:size(cnn.corr{1},2)
     
-    %% compute correlations
-
-    for scale=1:5
-
-        %choose behaviour
-        d1=mean(res.beauty,2); 
-
-        %cnn
-        % images
-        for c=1:size(cnn.corr{1},2)
-
-            %choose dnn variables (integration, self-similarity, competition)
-            d2=-cnn.corr{scale}(:,c);
-            d3=cnn.sim{scale}(:,c);
-            d4=cnn.l2{scale}(:,c);
-
-            %integration effect
-            [r,p]=corr(d1,d2,'type','Spearman');
-            dat.c{st}{1}{scale}(c,1)=r;
-            dat.p{st}{1}{scale}(c,1)=p;
-
-            %part-similarity effect
-            [r,p]=corr(d1,d3,'type','Spearman');
-            dat.c{st}{2}{scale}(c,1)=r;
-            dat.p{st}{2}{scale}(c,1)=p;
-
-            %integration effect (unique, wrt part-similarity)
-            [r,p]=partialcorr(d1,d2,d3,'type','Spearman');
-            dat.c{st}{3}{scale}(c,1)=r;
-            dat.p{st}{3}{scale}(c,1)=p;
-
-            %L2 for whole image
-            [r,p]=corr(d1,d4,'type','Spearman');
-            dat.c{st}{4}{scale}(c,1)=r;
-            dat.p{st}{4}{scale}(c,1)=p;
-
-            %integration effect (unique, wrt L2)
-            [r,p]=partialcorr(d1,d2,d4,'type','Spearman');
-            dat.c{st}{5}{scale}(c,1)=r;
-            dat.p{st}{5}{scale}(c,1)=p;
-
-            %store all variables
-            dat.data{st}{scale}{c}=[d1,d2,d3,d4];
-
-            %partial out complexity and order
-            if st==3
-                dat.corr_co(:,:,c)=corr([d1,d2,mean(res.complexity,2),mean(res.order,2)],'type','Spearman');
-                [r,p]=partialcorr(d1,d2,mean(res.complexity,2),'type','Spearman');
-                dat.c_co{1}{1}{scale}(c,1)=r;
-                dat.p_co{1}{1}{scale}(c,1)=p;
-                [r,p]=partialcorr(d1,d2,mean(res.order,2),'type','Spearman');
-                dat.c_co{2}{1}{scale}(c,1)=r;
-                dat.p_co{2}{1}{scale}(c,1)=p;
+                %choose dnn variables (integration, self-similarity, competition)
+                int_=-cnn.corr{scale}(:,img);
+                sim_=cnn.sim{scale}(:,img);
+                l2_=cnn.l2{scale}(:,img);
+    
+                %integration effect
+                [r,p]=corr(beh,int_,'type','Spearman');
+                dat.c{study}{1}{scale}(img,1)=r;
+                dat.p{study}{1}{scale}(img,1)=p;
+    
+                %part-similarity effect
+                [r,p]=corr(beh,sim_,'type','Spearman');
+                dat.c{study}{2}{scale}(img,1)=r;
+                dat.p{study}{2}{scale}(img,1)=p;
+    
+                %integration effect (unique, wrt part-similarity)
+                [r,p]=partialcorr(beh,int_,sim_,'type','Spearman');
+                dat.c{study}{3}{scale}(img,1)=r;
+                dat.p{study}{3}{scale}(img,1)=p;
+    
+                %L2 for whole image
+                [r,p]=corr(beh,l2_,'type','Spearman');
+                dat.c{study}{4}{scale}(img,1)=r;
+                dat.p{study}{4}{scale}(img,1)=p;
+    
+                %integration effect (unique, wrt L2)
+                [r,p]=partialcorr(beh,int_,l2_,'type','Spearman');
+                dat.c{study}{5}{scale}(img,1)=r;
+                dat.p{study}{5}{scale}(img,1)=p;
+    
+                %store all variables
+                dat.data{study}{scale}{img}=[beh,int_,sim_,l2_];
+    
+                %partial out complexity and order
+                if study==3
+                    dat.corr_co(:,:,img)=corr([beh,int_,mean(res.complexity,2),mean(res.order,2)],'type','Spearman');
+                    [r,p]=partialcorr(beh,int_,mean(res.complexity,2),'type','Spearman');
+                    dat.c_co{1}{1}{scale}(img,1)=r;
+                    dat.p_co{1}{1}{scale}(img,1)=p;
+                    [r,p]=partialcorr(beh,int_,mean(res.order,2),'type','Spearman');
+                    dat.c_co{2}{1}{scale}(img,1)=r;
+                    dat.p_co{2}{1}{scale}(img,1)=p;
+                end
+                
             end
-            
         end
-    end
-
-    %% compute GLMs
     
-    %choose behaviour
-    d1=mean(res.beauty,2);
-    d1_individual=res.beauty;
-
-    %compute regression for each spatial scale
-    for scale=1:5
-
-        X=-cnn.corr{scale};
-
-        %zscore
-        X=zscore(X,0,1);
-        Y=d1;
-        Y=zscore(Y,0,1);
-
-        %perform cross-validated glm
-        Z=zeros(size(X,1),1);
-
-        for i=1:size(X,1)
-
-            %split into train and test set
-            all_i=1:size(X,1);
-            train_i=all_i(not(all_i==i));
-            test_i=i;
-            
-            %get regression coefficients
-            B=regress(Y(train_i),[X(train_i,:),ones(size(Y(train_i)))]);
-
-            %get prediction for left-out image
-            Z(i,1)=sum(B(1:end-1)'.*X(test_i,:));
-
+        % COMPUTE GLMs
+        
+        %choose behaviour
+        beh=mean(res.beauty,2);
+    
+        %compute regression for each spatial scale
+        for scale=1:5
+    
+            X=-cnn.corr{scale};
+    
+            %zscore
+            X=zscore(X,0,1);
+            Y=beh;
+            Y=zscore(Y,0,1);
+    
+            %perform cross-validated glm
+            Z=zeros(size(X,1),1);
+    
+            % Leave-One-Out cross-validation
+            for i=1:size(X,1)
+    
+                %split into train and test set
+                all_i=1:size(X,1);
+                train_i=all_i(not(all_i==i));
+                test_i=i;
+                
+                %get regression coefficients
+                B=regress(Y(train_i),[X(train_i,:),ones(size(Y(train_i)))]);
+    
+                %get prediction for left-out image
+                Z(i,1)=sum(B(1:end-1)'.*X(test_i,:));
+    
+            end
+    
+            %evaluate predictions
+            [r,p]=corr(Z,Y,'type','Spearman');
+            dat.r_crossval{study}{1}(1,scale)=r;
+            dat.p_crossval{study}{1}(1,scale)=p;
+    
         end
-
-        %evaluate predictions
-        [r,p]=corr(Z,Y,'type','Spearman');
-        dat.r_crossval{st}{1}(1,scale)=r;
-        dat.p_crossval{st}{1}(1,scale)=p;
-
+    
     end
-
+    save(fullfile(SAVE_PATH,['cnn_prediction_' MODEL_NAMES{model} '.mat']), "dat")
 end
 
-save ./results/cnn_prediction dat
+
+clear

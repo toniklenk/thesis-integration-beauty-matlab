@@ -13,7 +13,7 @@ BEHAVIOR_NAMES = {'study1_places1_short.mat', 'study2_places1.mat', 'study3_plac
 
 DATASET_NAMES = {'places1', 'places1', 'places2', 'oasis'};
 
-
+SAVE_PATH = './results vgg16';
 
 %%
 %study
@@ -120,5 +120,5 @@ for study=1:4
     end
 
 end
-
-save ./results vgg16/cnn_prediction_vgg16 dat
+save(fullfile(SAVE_PATH,['cnn_prediction_' task '.mat']), "dat")
+clear
